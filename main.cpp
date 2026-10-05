@@ -15,6 +15,17 @@
 using json = nlohmann::json;
 
 namespace {
+
+    inline std::wstring ConvertText(std::string text) {
+        int size_needed = MultiByteToWideChar(CP_UTF8, 0, &text[0], (int)text.size(), NULL, 0);
+        std::wstring wtext(size_needed, 0);
+        MultiByteToWideChar(CP_UTF8, 0, &text[0], (int)text.size(), &wtext[0], size_needed);
+
+        return wtext;
+    }
+}
+
+namespace {
     const int WINDOW_WIDTH = 1280;
     const int WINDOW_HEIGHT = 720;
     LOG_HANDLE* logger = nullptr;
@@ -125,19 +136,33 @@ namespace {
         );
 
         std::string result = P2PEarthquakeAPI::GetEarthquake();
-        int size_needed = MultiByteToWideChar(CP_UTF8, 0, &result[0], (int)result.size(), NULL, 0);
-        std::wstring wstr(size_needed, 0);
-        MultiByteToWideChar(CP_UTF8, 0, &result[0], (int)result.size(), &wstr[0], size_needed);
-
         
         try {
-            json data = json::parse(wstr);
-            int maxScale = data.at(0).at("earthquake").at("maxScale").get<int>();
+            json data = json::parse(result);
+            auto& rootJson = data.at(0);
+            auto& earthquake = rootJson.at("earthquake");
+            auto& hypocenter = earthquake.at("hypocenter");
+
+            int maxScale = earthquake.at("maxScale").get<int>() / 10;
+
+            std::string name = hypocenter.at("name").get<std::string>();
+            std::string earthquakeTime = earthquake.at("time").get<std::string>();
+
+            float latitude = hypocenter.at("latitude").get<float>();
+            float longitude = hypocenter.at("longitude").get<float>();
+            float magnitude = hypocenter.at("magnitude").get<float>();
+            
+            std::wstring text = L"震源： " + ConvertText(name) + L"\n" +
+                                L"緯度： " + std::to_wstring(latitude) + L"\n" +
+                                L"経度： " + std::to_wstring(longitude) + L"\n" +
+                                L"マグニチュード： " + std::to_wstring(magnitude) + L"\n"
+                                L"最大震度： " + std::to_wstring(maxScale) + L"\n"
+                                L"発生時刻： " + ConvertText(earthquakeTime);
 
             CreateWindowEx(
                 0,
                 WC_STATIC,
-                config->translate(config, (L"最大震度：" + std::to_wstring(maxScale)).c_str()),
+                config->translate(config, text.c_str()),
                 WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
                 10, 10, 200, 300,
                 hwnd,

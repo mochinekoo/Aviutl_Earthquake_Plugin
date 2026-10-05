@@ -1,4 +1,3 @@
-# curl
 COPYRIGHT AND PERMISSION NOTICE
 
 Copyright (c) 1996 - 2026, Daniel Stenberg, daniel@haxx.se, and many contributors, see the THANKS file.
